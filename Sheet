@@ -7,6 +7,7 @@
 #include <limits>
 #include <algorithm>
 #include <sstream>
+#include <utility>
 
 struct Attack {
     std::string name;
@@ -25,6 +26,13 @@ struct Spell {
         : name(std::move(n)), description(std::move(desc)), level(lvl) {}
 };
 
+struct Feat {
+    std::string name;
+    std::string description;
+    Feat(std::string n, std::string desc)
+        : name(std::move(n)), description(std::move(desc)) {}
+};
+
 class DnDCharacter {
 public:
     std::string name, characterClass, race;
@@ -38,6 +46,7 @@ public:
     int highestSpellLevel = 0;
     std::map<int, int> spellSlotsPerLevel;
     std::vector<Spell> spells;
+    std::vector<Feat> feats;
 
     DnDCharacter() {
         std::srand(static_cast<unsigned>(std::time(nullptr)));
@@ -67,7 +76,9 @@ public:
         if (isSpellcaster) {
             inputSpellcasterInfo();
         }
+
         inputAttacks();
+        inputFeats();
     }
 
     void inputSkillModifiers() {
@@ -105,7 +116,6 @@ public:
         std::cout << "Enter highest spell level: ";
         std::cin >> highestSpellLevel;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
         for (int i = 1; i <= highestSpellLevel; ++i) {
             std::cout << "Enter number of spell slots for level " << i << ": ";
             int slots;
@@ -122,30 +132,32 @@ public:
         for (int i = 0; i < numSpells; ++i) {
             std::string spellName, description;
             int level;
-
-            if (!std::cin) {
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            }
-
             std::cout << "Enter spell name: ";
             std::getline(std::cin, spellName);
-
             std::cout << "Enter spell description: ";
             std::getline(std::cin, description);
-
             std::cout << "Enter spell level: ";
-            while (!(std::cin >> level)) {
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cout << "Invalid input. Please enter a number for the spell level: ";
-            }
+            std::cin >> level;
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
             spells.emplace_back(spellName, description, level);
         }
     }
-    
+
+    void inputFeats() {
+        std::cout << "Enter the number of feats your character has: ";
+        int numFeats;
+        std::cin >> numFeats;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+        for (int i = 0; i < numFeats; ++i) {
+            std::string featName, featDescription;
+            std::cout << "Feat #" << i + 1 << " name: ";
+            std::getline(std::cin, featName);
+            std::cout << "Feat #" << i + 1 << " description: ";
+            std::getline(std::cin, featDescription);
+            feats.emplace_back(featName, featDescription);
+        }
+    }
 
     void displayMainStats() const {
         std::cout << "Main Stats for " << name << ":\n";
@@ -188,16 +200,22 @@ public:
         }
     }
 
+    void displayFeats() const {
+        if (feats.empty()) {
+            std::cout << "No feats defined.\n";
+            return;
+        }
+        std::cout << "Feats for " << name << ":\n";
+        for (const auto& feat : feats) {
+            std::cout << "Name: " << feat.name << "\nDescription: " << feat.description << "\n";
+        }
+    }
+
     static int calculateModifier(int statValue) {
         return (statValue - 10) / 2;
     }
 
-    static void rollDiceWithModifier(int modifier, const std::string& name) {
-        int roll = rand() % 20 + 1; // D20 roll
-        std::cout << "Rolled a " << roll << " + " << name << " Modifier (" << modifier << ") = " << (roll + modifier) << std::endl;
-    }
-
-    // The implementation for rollDiceForStat, rollDiceForSkill, and rollAttack remains the same.
+    // Implement rollDiceForStat, rollDiceForSkill, and rollAttack if needed
 };
 
 int main() {
@@ -206,7 +224,7 @@ int main() {
 
     std::string command;
     while (true) {
-        std::cout << "\nEnter command (stats, skills, attacks, spells, quit): ";
+        std::cout << "\nEnter command (stats, skills, attacks, spells, feats, quit): ";
         std::getline(std::cin, command);
 
         if (command == "quit") {
@@ -219,6 +237,8 @@ int main() {
             character.displayAttacks();
         } else if (command == "spells" && character.isSpellcaster) {
             character.displaySpellcasterInfo();
+        } else if (command == "feats") {
+            character.displayFeats();
         } else {
             std::cout << "Unknown command.\n";
         }
