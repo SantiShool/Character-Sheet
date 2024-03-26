@@ -1,248 +1,177 @@
 #include <iostream>
 #include <string>
-#include <map>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
+#include <map>
 #include <limits>
 #include <algorithm>
-#include <sstream>
-#include <utility>
-
-struct Attack {
-    std::string name;
-    int attackBonus;
-    std::string damageDice;
-    std::string description;
-    Attack(std::string n, int ab, std::string dd, std::string desc)
-        : name(std::move(n)), attackBonus(ab), damageDice(std::move(dd)), description(std::move(desc)) {}
-};
-
-struct Spell {
-    std::string name;
-    std::string description;
-    int level;
-    Spell(std::string n, std::string desc, int lvl)
-        : name(std::move(n)), description(std::move(desc)), level(lvl) {}
-};
-
-struct Feat {
-    std::string name;
-    std::string description;
-    Feat(std::string n, std::string desc)
-        : name(std::move(n)), description(std::move(desc)) {}
-};
 
 class DnDCharacter {
 public:
-    std::string name, characterClass, race;
-    std::map<std::string, int> stats;
-    std::vector<std::string> skills = {"Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", 
-                                       "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", 
-                                       "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"};
-    std::map<std::string, int> skillModifiers;
-    std::vector<Attack> attacks;
-    bool isSpellcaster = false;
-    int highestSpellLevel = 0;
-    std::map<int, int> spellSlotsPerLevel;
-    std::vector<Spell> spells;
-    std::vector<Feat> feats;
+    std::string name;
+    std::string characterClass;
+    std::string subclass;
+    std::string race;
+    std::string subRace;
+    std::string background;
+    std::map<std::string, int> abilityScores = {
+        {"Strength", 8}, {"Dexterity", 8}, {"Constitution", 8},
+        {"Intelligence", 8}, {"Wisdom", 8}, {"Charisma", 8}
+    };
+    int availablePoints = 27;
 
     DnDCharacter() {
-        std::srand(static_cast<unsigned>(std::time(nullptr)));
+        std::sort(races.begin(), races.end());
+        std::sort(classes.begin(), classes.end());
+        std::sort(backgrounds.begin(), backgrounds.end());
     }
 
     void inputCharacterInfo() {
         std::cout << "Enter character name: ";
         std::getline(std::cin, name);
-        std::cout << "Enter character class: ";
-        std::getline(std::cin, characterClass);
-        std::cout << "Enter race: ";
-        std::getline(std::cin, race);
 
-        for (const auto& stat : {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}) {
-            std::cout << "Enter " << stat << ": ";
-            std::cin >> stats[stat];
+        selectFromList("race", races, race);
+        auto foundSubRaces = subRaces.find(race);
+        if (foundSubRaces != subRaces.end()) {
+            selectFromList("sub-race", foundSubRaces->second, subRace);
+        }
+
+        selectFromList("class", classes, characterClass);
+        auto foundSubclasses = subclasses.find(characterClass);
+        if (foundSubclasses != subclasses.end()) {
+            selectFromList("subclass", foundSubclasses->second, subclass);
+        }
+
+        selectFromList("background", backgrounds, background);
+
+        inputAbilityScores();
+        displayCharacterSheet();
+    }
+
+private:
+    std::vector<std::string> races = {
+        "Dwarf", "Elf", "Halfling", "Human", "Dragonborn",
+        "Gnome", "Half-Elf", "Half-Orc", "Tiefling"
+    };
+    std::map<std::string, std::vector<std::string>> subRaces = {
+        {"Dwarf", {"Hill Dwarf", "Mountain Dwarf"}},
+        {"Elf", {"High Elf", "Wood Elf", "Dark Elf (Drow)"}},
+        {"Halfling", {"Lightfoot Halfling", "Stout Halfling"}},
+        {"Gnome", {"Forest Gnome", "Rock Gnome"}},
+        // More subraces can be added here
+    };
+    std::vector<std::string> classes = {
+        "Barbarian", "Bard", "Cleric", "Druid", "Fighter",
+        "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer",
+        "Warlock", "Wizard"
+    };
+    std::map<std::string, std::vector<std::string>> subclasses = {
+        {"Barbarian", {"Path of the Berserker", "Path of the Totem Warrior"}},
+        {"Bard", {"College of Lore", "College of Valor"}},
+        {"Cleric", {"Knowledge Domain", "Life Domain", "Light Domain", "Nature Domain", "Tempest Domain", "Trickery Domain", "War Domain"}},
+        {"Druid", {"Circle of the Land", "Circle of the Moon"}},
+        {"Fighter", {"Battle Master", "Champion", "Eldritch Knight"}},
+        {"Monk", {"Way of Four Elements", "Way of the Open Hand", "Way of Shadow"}},
+        {"Paladin", {"Oath of the Ancients", "Oath of Devotion", "Oath of Vengeance"}},
+        {"Ranger", {"Beast Master", "Hunter"}},
+        {"Rogue", {"Arcane Trickster", "Assassin", "Thief"}},
+        {"Sorcerer", {"Draconic Bloodline", "Wild Magic"}},
+        {"Warlock", {"The Archfey", "The Fiend", "The Great Old One"}},
+        {"Wizard", {"School of Abjuration", "School of Conjuration", "School of Divination", "School of Enchantment", "School of Evocation", "School of Illusion", "School of Necromancy", "School of Transmutation"}},
+        // More subclasses can be added here
+    };
+    std::vector<std::string> backgrounds = {
+        "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
+        "Guild Artisan", "Hermit",         "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
+        "Sailor", "Soldier", "Urchin"
+        // More backgrounds can be added here
+    };
+
+    void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
+        std::cout << "Select your character's " << type << ":\n";
+        for (size_t i = 0; i < options.size(); ++i) {
+            std::cout << i + 1 << ". " << options[i] << "\n";
+        }
+
+        int choice = 0;
+        while (true) {
+            std::cout << "Enter the number of your choice: ";
+            if (!(std::cin >> choice)) {
+                std::cin.clear(); // Clear error flags
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard the incorrect input
+                std::cout << "Please enter a valid number.\n";
+                continue;
+            }
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            if (choice > 0 && static_cast<size_t>(choice) <= options.size()) {
+                selection = options[choice - 1];
+                break;
+            } else {
+                std::cout << "Invalid choice, please select a number from the list.\n";
+            }
         }
-
-        inputSkillModifiers();
-        
-        std::string spellcaster;
-        std::cout << "Is your character a spellcaster? (yes/no): ";
-        std::getline(std::cin, spellcaster);
-        isSpellcaster = (spellcaster == "yes" || spellcaster == "Yes");
-
-        if (isSpellcaster) {
-            inputSpellcasterInfo();
-        }
-
-        inputAttacks();
-        inputFeats();
     }
 
-    void inputSkillModifiers() {
-        for (const auto& skill : skills) {
-            std::cout << "Enter modifier for " << skill << ": ";
-            std::cin >> skillModifiers[skill];
+    void inputAbilityScores() {
+        std::cout << "\nYou have " << availablePoints << " points to allocate to your ability scores.\n";
+        const std::vector<std::string> order = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"};
+        while (availablePoints > 0) {
+            for (const auto& ability : order) {
+                std::cout << ability << ": " << abilityScores[ability] << " ";
+            }
+            std::cout << "\nAvailable points: " << availablePoints << ".\n";
+            std::cout << "Enter an ability to increase or type 'done' to finish: ";
+            std::string choice;
+            std::getline(std::cin, choice);
+            if (choice == "done") break;
+            if (abilityScores.find(choice) == abilityScores.end()) {
+                std::cout << "Invalid ability. Please try again.\n";
+                continue;
+            }
+            std::cout << "Points to add to " << choice << " (0 to cancel): ";
+            int pointsToAdd;
+            std::cin >> pointsToAdd;
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (pointsToAdd == 0) continue; // Allows cancellation
+            
+            int cost = calculateCost(abilityScores[choice], pointsToAdd);
+            if (cost <= availablePoints && (abilityScores[choice] + pointsToAdd) <= 15) {
+                abilityScores[choice] += pointsToAdd;
+                availablePoints -= cost;
+                std::cout << choice << " increased to " << abilityScores[choice] << ". Points remaining: " << availablePoints << ".\n";
+            } else {
+                std::cout << "Not enough points or score limit reached.\n";
+            }
         }
     }
 
-    void inputAttacks() {
-        std::cout << "How many attacks does your character have? ";
-        int numAttacks;
-        std::cin >> numAttacks;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        for (int i = 0; i < numAttacks; ++i) {
-            std::string name, damageDice, description;
-            int attackBonus;
-            std::cout << "Enter attack name: ";
-            std::getline(std::cin, name);
-            std::cout << "Enter attack bonus: ";
-            std::cin >> attackBonus;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Enter damage dice (e.g., 2d6+3): ";
-            std::getline(std::cin, damageDice);
-            std::cout << "Enter description: ";
-            std::getline(std::cin, description);
-
-            attacks.emplace_back(name, attackBonus, damageDice, description);
+    int calculateCost(int currentScore, int pointsToAdd) {
+        int cost = 0;
+        for (int i = 0; i < pointsToAdd; ++i) {
+            if (currentScore + i >= 14) { // Costs 2 points to increase from 14 to 15
+                cost += 2;
+            } else {
+                cost += 1;
+            }
         }
+        return cost;
     }
 
-    void inputSpellcasterInfo() {
-        std::cout << "Enter highest spell level: ";
-        std::cin >> highestSpellLevel;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        for (int i = 1; i <= highestSpellLevel; ++i) {
-            std::cout << "Enter number of spell slots for level " << i << ": ";
-            int slots;
-            std::cin >> slots;
-            spellSlotsPerLevel[i] = slots;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        int numSpells;
-        std::cout << "Enter number of spells known: ";
-        std::cin >> numSpells;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        for (int i = 0; i < numSpells; ++i) {
-            std::string spellName, description;
-            int level;
-            std::cout << "Enter spell name: ";
-            std::getline(std::cin, spellName);
-            std::cout << "Enter spell description: ";
-            std::getline(std::cin, description);
-            std::cout << "Enter spell level: ";
-            std::cin >> level;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            spells.emplace_back(spellName, description, level);
+    void displayCharacterSheet() const {
+        std::cout << "\n--- Character Sheet ---\n";
+        std::cout << "Name: " << name << "\nRace: " << race;
+        if (!subRace.empty()) std::cout << " (" << subRace << ")";
+        std::cout << "\nClass: " << characterClass;
+        if (!subclass.empty()) std::cout << " (" << subclass << ")";
+        std::cout << "\nBackground: " << background << "\nAbility Scores:\n";
+        for (const std::string& ability : {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}) {
+            std::cout << ability << ": " << abilityScores.at(ability) << "\n";
         }
     }
-
-    void inputFeats() {
-        std::cout << "Enter the number of feats your character has: ";
-        int numFeats;
-        std::cin >> numFeats;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        for (int i = 0; i < numFeats; ++i) {
-            std::string featName, featDescription;
-            std::cout << "Feat #" << i + 1 << " name: ";
-            std::getline(std::cin, featName);
-            std::cout << "Feat #" << i + 1 << " description: ";
-            std::getline(std::cin, featDescription);
-            feats.emplace_back(featName, featDescription);
-        }
-    }
-
-    void displayMainStats() const {
-        std::cout << "Main Stats for " << name << ":\n";
-        for (const auto& [statName, statValue] : stats) {
-            std::cout << statName << ": " << statValue << " (Modifier: " << calculateModifier(statValue) << ")\n";
-        }
-    }
-
-    void displaySkills() const {
-        std::cout << "Skills and Modifiers:\n";
-        for (const auto& [skillName, modifier] : skillModifiers) {
-            std::cout << skillName << ": " << modifier << "\n";
-        }
-    }
-
-    void displayAttacks() const {
-        if (attacks.empty()) {
-            std::cout << "No attacks defined.\n";
-            return;
-        }
-        std::cout << "Attacks for " << name << ":\n";
-        for (const auto& attack : attacks) {
-            std::cout << "Name: " << attack.name << ", Bonus: " << attack.attackBonus
-                      << ", Damage: " << attack.damageDice << "\nDescription: " << attack.description << "\n";
-        }
-    }
-
-    void displaySpellcasterInfo() const {
-        if (!isSpellcaster) {
-            return;
-        }
-        std::cout << "Spellcaster Info:\n";
-        std::cout << "Highest Spell Level: " << highestSpellLevel << "\n";
-        for (const auto& [level, slots] : spellSlotsPerLevel) {
-            std::cout << "Level " << level << " Slots: " << slots << "\n";
-        }
-        std::cout << "Spells:\n";
-        for (const auto& spell : spells) {
-            std::cout << "Name: " << spell.name << " (Level " << spell.level << ")\nDescription: " << spell.description << "\n";
-        }
-    }
-
-    void displayFeats() const {
-        if (feats.empty()) {
-            std::cout << "No feats defined.\n";
-            return;
-        }
-        std::cout << "Feats for " << name << ":\n";
-        for (const auto& feat : feats) {
-            std::cout << "Name: " << feat.name << "\nDescription: " << feat.description << "\n";
-        }
-    }
-
-    static int calculateModifier(int statValue) {
-        return (statValue - 10) / 2;
-    }
-
-    // Implement rollDiceForStat, rollDiceForSkill, and rollAttack if needed
 };
 
 int main() {
     DnDCharacter character;
     character.inputCharacterInfo();
-
-    std::string command;
-    while (true) {
-        std::cout << "\nEnter command (stats, skills, attacks, spells, feats, quit): ";
-        std::getline(std::cin, command);
-
-        if (command == "quit") {
-            break;
-        } else if (command == "stats") {
-            character.displayMainStats();
-        } else if (command == "skills") {
-            character.displaySkills();
-        } else if (command == "attacks") {
-            character.displayAttacks();
-        } else if (command == "spells" && character.isSpellcaster) {
-            character.displaySpellcasterInfo();
-        } else if (command == "feats") {
-            character.displayFeats();
-        } else {
-            std::cout << "Unknown command.\n";
-        }
-    }
-
     return 0;
 }
