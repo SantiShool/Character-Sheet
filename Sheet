@@ -20,6 +20,21 @@ public:
     };
     int availablePoints = 27;
 
+    // Add racial bonuses data structure
+    std::map<std::string, std::map<std::string, int>> racialBonuses = {
+        {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
+        {"Dwarf", {{"Constitution", 2}}},
+        {"Hill Dwarf", {{"Wisdom", 1}}},
+        {"Mountain Dwarf", {{"Strength", 2}}},
+        {"Elf", {{"Dexterity", 2}}},
+        {"High Elf", {{"Intelligence", 1}}},
+        {"Wood Elf", {{"Wisdom", 1}}},
+        {"Dark Elf (Drow)", {{"Charisma", 1}}},
+        {""
+        {"Half-Elf", {{"Charisma", 2}}},
+        // Add other races and subraces with their bonuses
+    };
+
     DnDCharacter() {
         std::sort(races.begin(), races.end());
         std::sort(classes.begin(), classes.end());
@@ -35,6 +50,9 @@ public:
         if (foundSubRaces != subRaces.end()) {
             selectFromList("sub-race", foundSubRaces->second, subRace);
         }
+
+        // Apply racial bonuses right after race and subrace selection
+        applyRacialBonuses();
 
         selectFromList("class", classes, characterClass);
         auto foundSubclasses = subclasses.find(characterClass);
@@ -83,6 +101,33 @@ private:
         "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
         "Sailor", "Soldier", "Urchin"
     };
+    void applyRacialBonuses() {
+    auto bonuses = racialBonuses.find(race);
+    if (bonuses != racialBonuses.end()) {
+        for (const auto& bonus : bonuses->second) {
+            abilityScores[bonus.first] += bonus.second;
+        }
+    }
+
+    // Handle Half-Elf's choice of two additional +1 ability score improvements
+    if (race == "Half-Elf") {
+        std::cout << "As a Half-Elf, you receive +2 Charisma and can choose two other ability scores to increase by +1.\n";
+        for (int i = 0; i < 2; ++i) {
+            std::cout << "Choose an ability score to increase by +1 (other than Charisma): ";
+            std::string choice;
+            std::getline(std::cin, choice);
+
+            // Validate choice
+            if (abilityScores.find(choice) != abilityScores.end() && choice != "Charisma") {
+                abilityScores[choice] += 1;
+                std::cout << choice << " increased by +1.\n";
+            } else {
+                std::cout << "Invalid choice or Charisma selected. Please choose a different ability score.\n";
+                i--; // Decrement to allow the user to choose again
+            }
+        }
+    }
+}
 
     void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
         std::cout << "Select your character's " << type << ":\n";
