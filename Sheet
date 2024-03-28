@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cmath> // For std::floor
 #include <limits>
 #include <algorithm>
 
@@ -57,7 +58,6 @@ private:
         {"Elf", {"High Elf", "Wood Elf", "Dark Elf (Drow)"}},
         {"Halfling", {"Lightfoot Halfling", "Stout Halfling"}},
         {"Gnome", {"Forest Gnome", "Rock Gnome"}},
-        // More subraces can be added here
     };
     std::vector<std::string> classes = {
         "Barbarian", "Bard", "Cleric", "Druid", "Fighter",
@@ -77,13 +77,11 @@ private:
         {"Sorcerer", {"Draconic Bloodline", "Wild Magic"}},
         {"Warlock", {"The Archfey", "The Fiend", "The Great Old One"}},
         {"Wizard", {"School of Abjuration", "School of Conjuration", "School of Divination", "School of Enchantment", "School of Evocation", "School of Illusion", "School of Necromancy", "School of Transmutation"}},
-        // More subclasses can be added here
     };
     std::vector<std::string> backgrounds = {
         "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
-        "Guild Artisan", "Hermit",         "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
+        "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
         "Sailor", "Soldier", "Urchin"
-        // More backgrounds can be added here
     };
 
     void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
@@ -117,10 +115,9 @@ private:
         const std::vector<std::string> order = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"};
         while (availablePoints > 0) {
             for (const auto& ability : order) {
-                std::cout << ability << ": " << abilityScores[ability] << " ";
+                std::cout << ability << ": " << abilityScores[ability] << " (Modifier: " << calculateModifier(abilityScores[ability]) << ")\n";
             }
-            std::cout << "\nAvailable points: " << availablePoints << ".\n";
-            std::cout << "Enter an ability to increase or type 'done' to finish: ";
+            std::cout << "\nAvailable points: " << availablePoints << ".\nEnter an ability to increase or type 'done' to finish: ";
             std::string choice;
             std::getline(std::cin, choice);
             if (choice == "done") break;
@@ -145,6 +142,10 @@ private:
         }
     }
 
+    int calculateModifier(int score) const {
+        return std::floor((score - 10) / 2.0);
+    }
+
     int calculateCost(int currentScore, int pointsToAdd) {
         int cost = 0;
         for (int i = 0; i < pointsToAdd; ++i) {
@@ -165,7 +166,7 @@ private:
         if (!subclass.empty()) std::cout << " (" << subclass << ")";
         std::cout << "\nBackground: " << background << "\nAbility Scores:\n";
         for (const std::string& ability : {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}) {
-            std::cout << ability << ": " << abilityScores.at(ability) << "\n";
+            std::cout << ability << ": " << abilityScores.at(ability) << " (Modifier: " << calculateModifier(abilityScores.at(ability)) << ")\n";
         }
     }
 };
