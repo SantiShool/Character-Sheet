@@ -22,18 +22,23 @@ public:
 
     // Add racial bonuses data structure
     std::map<std::string, std::map<std::string, int>> racialBonuses = {
-        {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
-        {"Dwarf", {{"Constitution", 2}}},
-        {"Hill Dwarf", {{"Wisdom", 1}}},
-        {"Mountain Dwarf", {{"Strength", 2}}},
-        {"Elf", {{"Dexterity", 2}}},
-        {"High Elf", {{"Intelligence", 1}}},
-        {"Wood Elf", {{"Wisdom", 1}}},
-        {"Dark Elf (Drow)", {{"Charisma", 1}}},
-        {""
-        {"Half-Elf", {{"Charisma", 2}}},
-        // Add other races and subraces with their bonuses
-    };
+    {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
+    {"Dwarf", {{"Constitution", 2}}},
+    {"Hill Dwarf", {{"Wisdom", 1}}},
+    {"Mountain Dwarf", {{"Strength", 2}}},
+    {"Elf", {{"Dexterity", 2}}},
+    {"High Elf", {{"Intelligence", 1}}},
+    {"Wood Elf", {{"Wisdom", 1}}},
+    {"Dark Elf (Drow)", {{"Charisma", 1}}},
+    {"Half-Elf", {{"Charisma", 2}}},
+    {"Half-Orc", {{"Strength", 2}, {"Constitution", 1}}},
+    {"Halfling", {{"Dexterity", 2}}},
+    {"Lightfoot Halfling", {{"Charisma", 1}}},
+    {"Stout Hafling", {{"Constitution", 1}}},
+    {"Human", {{"Strength", 1}, {"Dexterity", 1}, {"Constitution", 1}, {"Intelligence", 1}, {"Wisdom", 1}, {"Charisma", 1}}},
+    {"Tiefling", {{"Charisma", 2}, {"Intelligence", 1}}}
+    // Add other races and subraces as needed
+};
 
     DnDCharacter() {
         std::sort(races.begin(), races.end());
