@@ -55,19 +55,17 @@ public:
         if (foundSubRaces != subRaces.end()) {
             selectFromList("sub-race", foundSubRaces->second, subRace);
         }
-
-        // Apply racial bonuses right after race and subrace selection
-        applyRacialBonuses();
-
         selectFromList("class", classes, characterClass);
         auto foundSubclasses = subclasses.find(characterClass);
         if (foundSubclasses != subclasses.end()) {
             selectFromList("subclass", foundSubclasses->second, subclass);
         }
-
         selectFromList("background", backgrounds, background);
-
+        
         inputAbilityScores();
+        
+        applyRacialBonuses();
+
         displayCharacterSheet();
     }
 
@@ -110,11 +108,11 @@ private:
     auto bonuses = racialBonuses.find(race);
     if (bonuses != racialBonuses.end()) {
         for (const auto& bonus : bonuses->second) {
+            // Apply bonuses directly without the cap of 15
             abilityScores[bonus.first] += bonus.second;
         }
     }
 
-    // Handle Half-Elf's choice of two additional +1 ability score improvements
     if (race == "Half-Elf") {
         std::cout << "As a Half-Elf, you receive +2 Charisma and can choose two other ability scores to increase by +1.\n";
         for (int i = 0; i < 2; ++i) {
@@ -122,13 +120,12 @@ private:
             std::string choice;
             std::getline(std::cin, choice);
 
-            // Validate choice
             if (abilityScores.find(choice) != abilityScores.end() && choice != "Charisma") {
                 abilityScores[choice] += 1;
                 std::cout << choice << " increased by +1.\n";
             } else {
                 std::cout << "Invalid choice or Charisma selected. Please choose a different ability score.\n";
-                i--; // Decrement to allow the user to choose again
+                i--;
             }
         }
     }
@@ -161,36 +158,60 @@ private:
     }
 
     void inputAbilityScores() {
-        std::cout << "\nYou have " << availablePoints << " points to allocate to your ability scores.\n";
-        const std::vector<std::string> order = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"};
-        while (availablePoints > 0) {
-            for (const auto& ability : order) {
-                std::cout << ability << ": " << abilityScores[ability] << " (Modifier: " << calculateModifier(abilityScores[ability]) << ")\n";
-            }
-            std::cout << "\nAvailable points: " << availablePoints << ".\nEnter an ability to increase or type 'done' to finish: ";
-            std::string choice;
-            std::getline(std::cin, choice);
-            if (choice == "done") break;
-            if (abilityScores.find(choice) == abilityScores.end()) {
-                std::cout << "Invalid ability. Please try again.\n";
-                continue;
-            }
-            std::cout << "Points to add to " << choice << " (0 to cancel): ";
-            int pointsToAdd;
-            std::cin >> pointsToAdd;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            if (pointsToAdd == 0) continue; // Allows cancellation
-            
-            int cost = calculateCost(abilityScores[choice], pointsToAdd);
-            if (cost <= availablePoints && (abilityScores[choice] + pointsToAdd) <= 15) {
-                abilityScores[choice] += pointsToAdd;
-                availablePoints -= cost;
-                std::cout << choice << " increased to " << abilityScores[choice] << ". Points remaining: " << availablePoints << ".\n";
-            } else {
-                std::cout << "Not enough points or score limit reached.\n";
-            }
+    // Display racial bonuses to inform the player before allocation
+    std::cout << "\nBefore you allocate your ability scores, here are the racial bonuses for your chosen race/subrace:\n";
+    auto bonuses = racialBonuses.find(race);
+    if (bonuses != racialBonuses.end()) {
+        for (const auto& bonus : bonuses->second) {
+            std::cout << bonus.first << ": +" << bonus.second << " (racial bonus)\n";
         }
     }
+
+    std::cout << "\nYou have " << availablePoints << " points to allocate to your ability scores.\n";
+    const std::vector<std::string> order = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"};
+    while (availablePoints > 0) {
+        for (const auto& ability : order) {
+            // Check for and display any racial bonus for each ability score
+            int racialBonus = 0;
+            if (bonuses != racialBonuses.end() && bonuses->second.find(ability) != bonuses->second.end()) {
+                racialBonus = bonuses->second[ability];
+            }
+            
+            std::cout << ability << ": " << abilityScores[ability] << " (Modifier: " << calculateModifier(abilityScores[ability]) << ") ";
+            if (racialBonus > 0) {
+                std::cout << "[+ " << racialBonus << " racial bonus]";
+            }
+            std::cout << "\n";
+        }
+
+        std::cout << "\nAvailable points: " << availablePoints << ".\nEnter an ability to increase or type 'done' to finish: ";
+        std::string choice;
+        std::getline(std::cin, choice);
+        if (choice == "done") break;
+        if (abilityScores.find(choice) == abilityScores.end()) {
+            std::cout << "Invalid ability. Please try again.\n";
+            continue;
+        }
+        std::cout << "Points to add to " << choice << " (0 to cancel): ";
+        int pointsToAdd;
+        std::cin >> pointsToAdd;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        if (pointsToAdd == 0) continue; // Allows cancellation
+        
+        int cost = calculateCost(abilityScores[choice], pointsToAdd);
+        if (cost <= availablePoints && (abilityScores[choice] + pointsToAdd) <= 15) {
+            abilityScores[choice] += pointsToAdd;
+            availablePoints -= cost;
+            std::cout << choice << " increased to " << abilityScores[choice];
+            if (bonuses != racialBonuses.end() && bonuses->second.find(choice) != bonuses->second.end()) {
+                std::cout << " (will become " << abilityScores[choice] + bonuses->second[choice] << " with racial bonus)";
+            }
+            std::cout << ". Points remaining: " << availablePoints << ".\n";
+        } else {
+            std::cout << "Not enough points or score limit reached.\n";
+        }
+    }
+}
 
     int calculateModifier(int score) const {
         return std::floor((score - 10) / 2.0);
