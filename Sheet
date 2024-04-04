@@ -3,14 +3,15 @@
 #include <vector>
 #include <map>
 #include <cmath> // For std::floor
-#include <limits>
-#include <algorithm>
+#include <limits> // For numeric_limits
+#include <algorithm> // For std::transform
 
 class DnDCharacter {
 public:
     std::string name;
     std::string characterClass;
     std::string subclass;
+    std::map<std::string, int> halfElfChoices;
     std::string race;
     std::string subRace;
     std::string background;
@@ -20,25 +21,56 @@ public:
     };
     int availablePoints = 27;
 
-    // Add racial bonuses data structure
     std::map<std::string, std::map<std::string, int>> racialBonuses = {
-    {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
-    {"Dwarf", {{"Constitution", 2}}},
-    {"Hill Dwarf", {{"Wisdom", 1}}},
-    {"Mountain Dwarf", {{"Strength", 2}}},
-    {"Elf", {{"Dexterity", 2}}},
-    {"High Elf", {{"Intelligence", 1}}},
-    {"Wood Elf", {{"Wisdom", 1}}},
-    {"Dark Elf (Drow)", {{"Charisma", 1}}},
-    {"Half-Elf", {{"Charisma", 2}}},
-    {"Half-Orc", {{"Strength", 2}, {"Constitution", 1}}},
-    {"Halfling", {{"Dexterity", 2}}},
-    {"Lightfoot Halfling", {{"Charisma", 1}}},
-    {"Stout Hafling", {{"Constitution", 1}}},
-    {"Human", {{"Strength", 1}, {"Dexterity", 1}, {"Constitution", 1}, {"Intelligence", 1}, {"Wisdom", 1}, {"Charisma", 1}}},
-    {"Tiefling", {{"Charisma", 2}, {"Intelligence", 1}}}
-    // Add other races and subraces as needed
-};
+        {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
+        {"Dwarf", {{"Constitution", 2}}},
+        {"Elf", {{"Dexterity", 2}}},
+        {"Halfling", {{"Dexterity", 2}}},
+        {"Human", {{"Strength", 1}, {"Dexterity", 1}, {"Constitution", 1}, {"Intelligence", 1}, {"Wisdom", 1}, {"Charisma", 1}}},
+        {"Half-Elf", {{"Charisma", 2}}},
+        {"Half-Orc", {{"Strength", 2}, {"Constitution", 1}}},
+        {"Tiefling", {{"Charisma", 2}, {"Intelligence", 1}}}
+    };
+
+    std::map<std::string, std::map<std::string, int>> subraceBonuses = {
+        {"Hill Dwarf", {{"Wisdom", 1}}},
+        {"Mountain Dwarf", {{"Strength", 2}}},
+        {"High Elf", {{"Intelligence", 1}}},
+        {"Wood Elf", {{"Wisdom", 1}}},
+        {"Dark Elf (Drow)", {{"Charisma", 1}}},
+        {"Lightfoot Halfling", {{"Charisma", 1}}},
+        {"Stout Halfling", {{"Constitution", 1}}}
+    };
+
+    std::vector<std::string> races = {
+        "Dwarf", "Elf", "Halfling", "Human", "Dragonborn",
+        "Gnome", "Half-Elf", "Half-Orc", "Tiefling"
+    };
+
+    std::map<std::string, std::vector<std::string>> subRaces = {
+        {"Dwarf", {"Hill Dwarf", "Mountain Dwarf"}},
+        {"Elf", {"High Elf", "Wood Elf", "Dark Elf (Drow)"}},
+        {"Halfling", {"Lightfoot Halfling", "Stout Halfling"}},
+        {"Gnome", {"Forest Gnome", "Rock Gnome"}},
+    };
+
+    std::vector<std::string> classes = {
+        "Barbarian", "Bard", "Cleric", "Druid", "Fighter",
+        "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer",
+        "Warlock", "Wizard"
+    };
+
+    std::map<std::string, std::vector<std::string>> subclasses = {
+        {"Barbarian", {"Path of the Berserker", "Path of the Totem Warrior"}},
+        {"Bard", {"College of Lore", "College of Valor"}},
+        // Other classes and subclasses are similarly defined
+    };
+
+    std::vector<std::string> backgrounds = {
+        "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
+        "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
+        "Sailor", "Soldier", "Urchin"
+    };
 
     DnDCharacter() {
         std::sort(races.begin(), races.end());
@@ -46,201 +78,209 @@ public:
         std::sort(backgrounds.begin(), backgrounds.end());
     }
 
-    void inputCharacterInfo() {
-        std::cout << "Enter character name: ";
-        std::getline(std::cin, name);
+    void inputCharacterInfo();
+    void applyRacialBonuses();
+    void handleHalfElfBonuses();
+    void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection);
+    void inputAbilityScores();
+    int calculateModifier(int score) const;
+    int calculateCost(int currentScore, int pointsToAdd);
+    void displayCharacterSheet() const;
+};
 
-        selectFromList("race", races, race);
-        auto foundSubRaces = subRaces.find(race);
-        if (foundSubRaces != subRaces.end()) {
-            selectFromList("sub-race", foundSubRaces->second, subRace);
-        }
-        selectFromList("class", classes, characterClass);
-        auto foundSubclasses = subclasses.find(characterClass);
-        if (foundSubclasses != subclasses.end()) {
-            selectFromList("subclass", foundSubclasses->second, subclass);
-        }
-        selectFromList("background", backgrounds, background);
-        
-        inputAbilityScores();
-        
-        applyRacialBonuses();
+// Define inputCharacterInfo
+void DnDCharacter::inputCharacterInfo() {
+    std::cout << "Enter character name: ";
+    std::getline(std::cin, name);
 
-        displayCharacterSheet();
+    selectFromList("race", races, race);
+
+    if (race == "Half-Elf") {
+        handleHalfElfBonuses();
+        // Apply the Half-Elf bonuses chosen to the main ability scores
+        for (const auto& choice : halfElfChoices) {
+            abilityScores[choice.first] += choice.second;
+        }
     }
 
-private:
-    std::vector<std::string> races = {
-        "Dwarf", "Elf", "Halfling", "Human", "Dragonborn",
-        "Gnome", "Half-Elf", "Half-Orc", "Tiefling"
-    };
-    std::map<std::string, std::vector<std::string>> subRaces = {
-        {"Dwarf", {"Hill Dwarf", "Mountain Dwarf"}},
-        {"Elf", {"High Elf", "Wood Elf", "Dark Elf (Drow)"}},
-        {"Halfling", {"Lightfoot Halfling", "Stout Halfling"}},
-        {"Gnome", {"Forest Gnome", "Rock Gnome"}},
-    };
-    std::vector<std::string> classes = {
-        "Barbarian", "Bard", "Cleric", "Druid", "Fighter",
-        "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer",
-        "Warlock", "Wizard"
-    };
-    std::map<std::string, std::vector<std::string>> subclasses = {
-        {"Barbarian", {"Path of the Berserker", "Path of the Totem Warrior"}},
-        {"Bard", {"College of Lore", "College of Valor"}},
-        {"Cleric", {"Knowledge Domain", "Life Domain", "Light Domain", "Nature Domain", "Tempest Domain", "Trickery Domain", "War Domain"}},
-        {"Druid", {"Circle of the Land", "Circle of the Moon"}},
-        {"Fighter", {"Battle Master", "Champion", "Eldritch Knight"}},
-        {"Monk", {"Way of Four Elements", "Way of the Open Hand", "Way of Shadow"}},
-        {"Paladin", {"Oath of the Ancients", "Oath of Devotion", "Oath of Vengeance"}},
-        {"Ranger", {"Beast Master", "Hunter"}},
-        {"Rogue", {"Arcane Trickster", "Assassin", "Thief"}},
-        {"Sorcerer", {"Draconic Bloodline", "Wild Magic"}},
-        {"Warlock", {"The Archfey", "The Fiend", "The Great Old One"}},
-        {"Wizard", {"School of Abjuration", "School of Conjuration", "School of Divination", "School of Enchantment", "School of Evocation", "School of Illusion", "School of Necromancy", "School of Transmutation"}},
-    };
-    std::vector<std::string> backgrounds = {
-        "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
-        "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
-        "Sailor", "Soldier", "Urchin"
-    };
-    void applyRacialBonuses() {
+    auto foundSubRaces = subRaces.find(race);
+    if (foundSubRaces != subRaces.end()) {
+        selectFromList("sub-race", foundSubRaces->second, subRace);
+    }
+
+    selectFromList("class", classes, characterClass);
+    auto foundSubclasses = subclasses.find(characterClass);
+    if (foundSubclasses != subclasses.end()) {
+        selectFromList("subclass", foundSubclasses->second, subclass);
+    }
+    selectFromList("background", backgrounds, background);
+
+    applyRacialBonuses(); // This now applies only the default racial bonuses since Half-Elf choices are already applied
+    inputAbilityScores();
+    displayCharacterSheet();
+}
+void DnDCharacter::applyRacialBonuses() {
+    // This function now only applies the standard racial bonuses,
+    // as Half-Elf bonuses are handled separately in handleHalfElfBonuses.
     auto bonuses = racialBonuses.find(race);
     if (bonuses != racialBonuses.end()) {
         for (const auto& bonus : bonuses->second) {
-            // Apply bonuses directly without the cap of 15
             abilityScores[bonus.first] += bonus.second;
-        }
-    }
-
-    if (race == "Half-Elf") {
-        std::cout << "As a Half-Elf, you receive +2 Charisma and can choose two other ability scores to increase by +1.\n";
-        for (int i = 0; i < 2; ++i) {
-            std::cout << "Choose an ability score to increase by +1 (other than Charisma): ";
-            std::string choice;
-            std::getline(std::cin, choice);
-
-            if (abilityScores.find(choice) != abilityScores.end() && choice != "Charisma") {
-                abilityScores[choice] += 1;
-                std::cout << choice << " increased by +1.\n";
-            } else {
-                std::cout << "Invalid choice or Charisma selected. Please choose a different ability score.\n";
-                i--;
-            }
         }
     }
 }
 
-    void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
-        std::cout << "Select your character's " << type << ":\n";
-        for (size_t i = 0; i < options.size(); ++i) {
-            std::cout << i + 1 << ". " << options[i] << "\n";
-        }
+void DnDCharacter::handleHalfElfBonuses() {
+    if (race == "Half-Elf") {
+        std::cout << "As a Half-Elf, you receive +2 Charisma. You can also choose two other ability scores to increase by +1 each, other than Charisma.\n";
 
-        int choice = 0;
-        while (true) {
-            std::cout << "Enter the number of your choice: ";
-            if (!(std::cin >> choice)) {
-                std::cin.clear(); // Clear error flags
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard the incorrect input
-                std::cout << "Please enter a valid number.\n";
+        int bonusesApplied = 0;
+        while (bonusesApplied < 2) {
+            std::cout << "Choose an ability score to increase by +1: ";
+            std::string choice;
+            std::getline(std::cin, choice);
+
+            // Capitalize the first letter and make the rest lowercase
+            if (!choice.empty()) {
+                choice[0] = toupper(choice[0]);
+                for (size_t i = 1; i < choice.length(); ++i) {
+                    choice[i] = tolower(choice[i]);
+                }
+            }
+
+            if (choice == "Charisma") {
+                std::cout << "Charisma cannot be chosen. Please choose a different ability score.\n";
                 continue;
             }
+
+            if (abilityScores.find(choice) == abilityScores.end() || halfElfChoices.find(choice) != halfElfChoices.end()) {
+                std::cout << "Invalid choice. Please select a valid ability score that hasn't been chosen yet.\n";
+                continue;
+            }
+
+            halfElfChoices[choice] = 1;
+            std::cout << choice << " increased by +1.\n";
+            bonusesApplied++;
+        }
+    }
+}
+
+void DnDCharacter::selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
+    std::cout << "Select your character's " << type << ":\n";
+    for (size_t i = 0; i < options.size(); ++i) {
+        std::cout << i + 1 << ". " << options[i] << "\n";
+    }
+
+    int choice;
+    do {
+        std::cout << "Enter the number of your choice: ";
+        std::cin >> choice;
+        if (std::cin.fail() || choice < 1 || choice > options.size()) {
+            std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-            if (choice > 0 && static_cast<size_t>(choice) <= options.size()) {
-                selection = options[choice - 1];
-                break;
-            } else {
-                std::cout << "Invalid choice, please select a number from the list.\n";
-            }
+            std::cout << "Invalid choice, please select a number from the list.\n";
+            continue;
         }
-    }
+        break;
+    } while (true);
 
-    void inputAbilityScores() {
-    // Display racial bonuses to inform the player before allocation
-    std::cout << "\nBefore you allocate your ability scores, here are the racial bonuses for your chosen race/subrace:\n";
-    auto bonuses = racialBonuses.find(race);
-    if (bonuses != racialBonuses.end()) {
-        for (const auto& bonus : bonuses->second) {
-            std::cout << bonus.first << ": +" << bonus.second << " (racial bonus)\n";
-        }
-    }
+    selection = options[choice - 1];
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear the input buffer
+}
 
-    std::cout << "\nYou have " << availablePoints << " points to allocate to your ability scores.\n";
-    const std::vector<std::string> order = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"};
+void DnDCharacter::inputAbilityScores() {
+    std::cout << "\nYou have " << availablePoints << " points to allocate to your ability scores."
+              << "\nNote: The maximum value for any ability score is 15, not including racial or subrace bonuses."
+              << "\nAlso, increasing an ability score from 14 to 15 costs 2 points.\n";
+
+    // Define the order in which stats are displayed and allocated
+    std::vector<std::string> statOrder = {"Strength", "Dexterity", "Constitution", "Wisdom", "Intelligence", "Charisma"};
+
+    // Temporary map for user-allocated points, separate from bonuses
+    std::map<std::string, int> userAllocatedPoints = {
+        {"Strength", 0}, {"Dexterity", 0}, {"Constitution", 0},
+        {"Wisdom", 0}, {"Intelligence", 0}, {"Charisma", 0}
+    };
+
     while (availablePoints > 0) {
-        for (const auto& ability : order) {
-            // Check for and display any racial bonus for each ability score
-            int racialBonus = 0;
-            if (bonuses != racialBonuses.end() && bonuses->second.find(ability) != bonuses->second.end()) {
-                racialBonus = bonuses->second[ability];
-            }
-            
-            std::cout << ability << ": " << abilityScores[ability] << " (Modifier: " << calculateModifier(abilityScores[ability]) << ") ";
-            if (racialBonus > 0) {
-                std::cout << "[+ " << racialBonus << " racial bonus]";
-            }
-            std::cout << "\n";
+        for (const auto& stat : statOrder) {
+            int raceBonus = racialBonuses[race][stat] + subraceBonuses[subRace][stat] + halfElfChoices[stat];
+            std::cout << stat << ": " << (8 + userAllocatedPoints[stat])
+                      << " (" << (raceBonus > 0 ? "+" + std::to_string(raceBonus) : "0") << " bonus)\n";
         }
 
-        std::cout << "\nAvailable points: " << availablePoints << ".\nEnter an ability to increase or type 'done' to finish: ";
         std::string choice;
+        std::cout << "\nAvailable points: " << availablePoints << ". Enter an ability to increase or type 'done' to finish: ";
         std::getline(std::cin, choice);
         if (choice == "done") break;
-        if (abilityScores.find(choice) == abilityScores.end()) {
+
+        if (userAllocatedPoints.find(choice) == userAllocatedPoints.end()) {
             std::cout << "Invalid ability. Please try again.\n";
             continue;
         }
+
         std::cout << "Points to add to " << choice << " (0 to cancel): ";
         int pointsToAdd;
         std::cin >> pointsToAdd;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        if (pointsToAdd == 0) continue; // Allows cancellation
-        
-        int cost = calculateCost(abilityScores[choice], pointsToAdd);
-        if (cost <= availablePoints && (abilityScores[choice] + pointsToAdd) <= 15) {
-            abilityScores[choice] += pointsToAdd;
+
+        if (pointsToAdd == 0) continue;
+
+        int currentAllocated = userAllocatedPoints[choice];
+        int cost = calculateCost(8 + currentAllocated, pointsToAdd);
+
+        if (cost <= availablePoints && (8 + currentAllocated + pointsToAdd) <= 15) {
+            userAllocatedPoints[choice] += pointsToAdd;
             availablePoints -= cost;
-            std::cout << choice << " increased to " << abilityScores[choice];
-            if (bonuses != racialBonuses.end() && bonuses->second.find(choice) != bonuses->second.end()) {
-                std::cout << " (will become " << abilityScores[choice] + bonuses->second[choice] << " with racial bonus)";
-            }
-            std::cout << ". Points remaining: " << availablePoints << ".\n";
+            std::cout << choice << " increased. Points remaining: " << availablePoints << ".\n";
         } else {
-            std::cout << "Not enough points or score limit reached.\n";
+            std::cout << "Not enough points or score limit reached. Remember, the max score before bonuses is 15.\n";
         }
     }
+
+    // Apply the points allocated by the user to the base scores (starting at 8)
+    for (const auto& [stat, points] : userAllocatedPoints) {
+        abilityScores[stat] = 8 + points; // Starting each stat at 8, then adding allocated points
+    }
+
+    std::cout << "\nFinal Ability Scores after allocation and bonuses:\n";
+    for (const auto& stat : statOrder) {
+        int totalBonus = racialBonuses[race][stat] + subraceBonuses[subRace][stat] + halfElfChoices[stat];
+        abilityScores[stat] += totalBonus; // Apply racial and subrace bonuses
+        std::cout << stat << ": " << abilityScores[stat] << "\n";
+    }
+
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-    int calculateModifier(int score) const {
-        return std::floor((score - 10) / 2.0);
-    }
+int DnDCharacter::calculateModifier(int score) const {
+    return std::floor((score - 10) / 2.0);
+}
 
-    int calculateCost(int currentScore, int pointsToAdd) {
-        int cost = 0;
-        for (int i = 0; i < pointsToAdd; ++i) {
-            if (currentScore + i >= 14) { // Costs 2 points to increase from 14 to 15
-                cost += 2;
-            } else {
-                cost += 1;
-            }
-        }
-        return cost;
-    }
-
-    void displayCharacterSheet() const {
-        std::cout << "\n--- Character Sheet ---\n";
-        std::cout << "Name: " << name << "\nRace: " << race;
-        if (!subRace.empty()) std::cout << " (" << subRace << ")";
-        std::cout << "\nClass: " << characterClass;
-        if (!subclass.empty()) std::cout << " (" << subclass << ")";
-        std::cout << "\nBackground: " << background << "\nAbility Scores:\n";
-        for (const std::string& ability : {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}) {
-            std::cout << ability << ": " << abilityScores.at(ability) << " (Modifier: " << calculateModifier(abilityScores.at(ability)) << ")\n";
+int DnDCharacter::calculateCost(int currentScore, int pointsToAdd) {
+    int cost = 0;
+    for (int i = 0; i < pointsToAdd; ++i) {
+        if (currentScore + i >= 14) {
+            cost += 2; // Costs 2 points to increase from 14 to 15
+        } else {
+            cost += 1;
         }
     }
-};
+    return cost;
+}
+
+void DnDCharacter::displayCharacterSheet() const {
+    std::cout << "\n--- Character Sheet ---\n";
+    std::cout << "Name: " << name << "\nRace: " << race;
+    if (!subRace.empty()) std::cout << " (" << subRace << ")";
+    std::cout << "\nClass: " << characterClass;
+    if (!subclass.empty()) std::cout << " (" << subclass << ")";
+    std::cout << "\nBackground: " << background << "\nAbility Scores:\n";
+    for (const auto& [key, value] : abilityScores) {
+        std::cout << key << ": " << value << " (Modifier: " << calculateModifier(value) << ")\n";
+    }
+}
 
 int main() {
     DnDCharacter character;
