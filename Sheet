@@ -63,7 +63,16 @@ public:
     std::map<std::string, std::vector<std::string>> subclasses = {
         {"Barbarian", {"Path of the Berserker", "Path of the Totem Warrior"}},
         {"Bard", {"College of Lore", "College of Valor"}},
-        // Other classes and subclasses are similarly defined
+        {"Cleric", {"Knowledge Domain", "Life Domain", "Light Domain", "Nature Domain", "Tempest Domain", "Trickery Domain", "War Domain"}},
+        {"Druid", {"Circle of the Land", "Circle of the Moon"}},
+        {"Fighter", {"Battle Master", "Champion", "Eldritch Knight"}},
+        {"Monk", {"Way of Four Elements", "Way of the Open Hand", "Way of Shadow"}},
+        {"Paladin", {"Oath of the Ancients", "Oath of Devotion", "Oath of Vengeance"}},
+        {"Ranger", {"Beast Master", "Hunter"}},
+        {"Rogue", {"Arcane Trickster", "Assassin", "Thief"}},
+        {"Sorcerer", {"Draconic Bloodline", "Wild Magic"}},
+        {"Warlock", {"The Archfey", "The Fiend", "The Great Old One"}},
+        {"Wizard", {"School of Abjuration", "School of Conjuration", "School of Divination", "School of Enchantment", "School of Evocation", "School of Illusion", "School of Necromancy", "School of Transmutation"}},
     };
 
     std::vector<std::string> backgrounds = {
