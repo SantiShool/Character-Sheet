@@ -81,10 +81,23 @@ public:
         "Sailor", "Soldier", "Urchin"
     };
 
+    int speed;
+    int initiative;
+    int health;
+
+    // Static maps for race speeds and class hit dice
+    static std::map<std::string, int> raceSpeeds;
+    static std::map<std::string, int> classHitDice;
+
     DnDCharacter() {
         std::sort(races.begin(), races.end());
         std::sort(classes.begin(), classes.end());
         std::sort(backgrounds.begin(), backgrounds.end());
+
+        // Default values for new stats, these will be adjusted in finalizeCharacterStats
+        speed = 30; // Placeholder, actual value depends on race
+        initiative = 0; // Calculated from Dexterity modifier
+        health = 10; // Placeholder, actual value depends on class and Constitution modifier
     }
 
     void inputCharacterInfo();
@@ -92,9 +105,21 @@ public:
     void handleHalfElfBonuses();
     void selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection);
     void inputAbilityScores();
+    void finalizeCharacterStats();
     int calculateModifier(int score) const;
     int calculateCost(int currentScore, int pointsToAdd);
     void displayCharacterSheet() const;
+};
+
+std::map<std::string, int> DnDCharacter::raceSpeeds = {
+    {"Dwarf", 25}, {"Elf", 30}, {"Halfling", 25}, {"Human", 30},
+    {"Dragonborn", 30}, {"Gnome", 25}, {"Half-Elf", 30}, {"Half-Orc", 30}, {"Tiefling", 30}
+};
+
+std::map<std::string, int> DnDCharacter::classHitDice = {
+    {"Barbarian", 12}, {"Bard", 8}, {"Cleric", 8}, {"Druid", 8}, {"Fighter", 10},
+    {"Monk", 8}, {"Paladin", 10}, {"Ranger", 10}, {"Rogue", 8}, {"Sorcerer", 6},
+    {"Warlock", 8}, {"Wizard", 6}
 };
 
 // Define inputCharacterInfo
@@ -262,6 +287,11 @@ void DnDCharacter::inputAbilityScores() {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
+void DnDCharacter::finalizeCharacterStats() {
+    speed = raceSpeeds[race];
+    initiative = calculateModifier(abilityScores["Dexterity"]);
+    health = classHitDice[characterClass] + calculateModifier(abilityScores["Constitution"]);
+}
 
 int DnDCharacter::calculateModifier(int score) const {
     return std::floor((score - 10) / 2.0);
@@ -285,7 +315,19 @@ void DnDCharacter::displayCharacterSheet() const {
     if (!subRace.empty()) std::cout << " (" << subRace << ")";
     std::cout << "\nClass: " << characterClass;
     if (!subclass.empty()) std::cout << " (" << subclass << ")";
-    std::cout << "\nBackground: " << background << "\nAbility Scores:\n";
+    std::cout << "\nBackground: " << background << "\n";
+    std::cout << "--------------------------------\n";
+
+    // Display HP, Initiative, and Speed
+    std::cout << "HP: " << health << "\n";
+    std::cout << "Initiative: " << (initiative >= 0 ? "+" : "") << initiative << "\n";
+    std::cout << "Speed: " << speed << "\n";
+
+    // Second Divider
+    std::cout << "--------------------------------\n";
+
+    // Display Ability Scores
+    std::cout << "Ability Scores:\n";
     for (const auto& [key, value] : abilityScores) {
         std::cout << key << ": " << value << " (Modifier: " << calculateModifier(value) << ")\n";
     }
@@ -294,5 +336,7 @@ void DnDCharacter::displayCharacterSheet() const {
 int main() {
     DnDCharacter character;
     character.inputCharacterInfo();
+    character.finalizeCharacterStats(); // Ensure stats are finalized based on race/class/abilities
+    character.displayCharacterSheet();
     return 0;
 }
