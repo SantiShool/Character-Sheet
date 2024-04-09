@@ -2,25 +2,28 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <cmath> // For std::floor
-#include <limits> // For numeric_limits
-#include <algorithm> // For std::transform
+#include <cmath> 
+#include <limits> 
+#include <algorithm> 
 
 class DnDCharacter {
 public:
-    std::string name;
-    std::string characterClass;
-    std::string subclass;
-    std::map<std::string, int> halfElfChoices;
-    std::string race;
-    std::string subRace;
-    std::string background;
+    // Character basic info
+    std::string name; // Character's name
+    std::string characterClass; // Character's class
+    std::string subclass; // Subclass, for more specialization
+    std::map<std::string, int> halfElfChoices; // Bonus choices for half-elf race
+    std::string race; // Character's race
+    std::string subRace; // Subrace for further customization
+    std::string background; // Background story
+    // Starting ability scores, all set to 8 as a base
     std::map<std::string, int> abilityScores = {
         {"Strength", 8}, {"Dexterity", 8}, {"Constitution", 8},
         {"Intelligence", 8}, {"Wisdom", 8}, {"Charisma", 8}
     };
-    int availablePoints = 27;
+    int availablePoints = 27; // Points to distribute to ability scores
 
+    // Race-based stat bonuses
     std::map<std::string, std::map<std::string, int>> racialBonuses = {
         {"Dragonborn", {{"Strength", 2}, {"Charisma", 1}}},
         {"Dwarf", {{"Constitution", 2}}},
@@ -32,7 +35,9 @@ public:
         {"Tiefling", {{"Charisma", 2}, {"Intelligence", 1}}}
     };
 
+    // Subrace-based stat bonuses
     std::map<std::string, std::map<std::string, int>> subraceBonuses = {
+        {"Hill Dwarf", {{"Wisdom", 1}}},
         {"Hill Dwarf", {{"Wisdom", 1}}},
         {"Mountain Dwarf", {{"Strength", 2}}},
         {"High Elf", {{"Intelligence", 1}}},
@@ -41,7 +46,7 @@ public:
         {"Lightfoot Halfling", {{"Charisma", 1}}},
         {"Stout Halfling", {{"Constitution", 1}}}
     };
-
+    // Lists of races and classes for selection
     std::vector<std::string> races = {
         "Dwarf", "Elf", "Halfling", "Human", "Dragonborn",
         "Gnome", "Half-Elf", "Half-Orc", "Tiefling"
@@ -81,25 +86,27 @@ public:
         "Sailor", "Soldier", "Urchin"
     };
 
-    int speed;
-    int initiative;
-    int health;
+    // Character stats beyond ability scores
+    int speed; // Movement speed
+    int initiative; // Determines turn order in combat
+    int health; // Hit points
 
-    // Static maps for race speeds and class hit dice
+    // Speeds and hit dice by race and class for calculating stats
     static std::map<std::string, int> raceSpeeds;
     static std::map<std::string, int> classHitDice;
 
+    // Constructor to sort races and classes for easier selection and set default stats
     DnDCharacter() {
         std::sort(races.begin(), races.end());
         std::sort(classes.begin(), classes.end());
-        std::sort(backgrounds.begin(), backgrounds.end());
-
-        // Default values for new stats, these will be adjusted in finalizeCharacterStats
-        speed = 30; // Placeholder, actual value depends on race
-        initiative = 0; // Calculated from Dexterity modifier
-        health = 10; // Placeholder, actual value depends on class and Constitution modifier
+        // Default values for stats
+        speed = 30; 
+        initiative = 0; 
+        health = 10; 
+    
     }
 
+    // Function declarations (implementations to follow)
     void inputCharacterInfo();
     void applyRacialBonuses();
     void handleHalfElfBonuses();
@@ -111,6 +118,7 @@ public:
     void displayCharacterSheet() const;
 };
 
+// Static member initialization
 std::map<std::string, int> DnDCharacter::raceSpeeds = {
     {"Dwarf", 25}, {"Elf", 30}, {"Halfling", 25}, {"Human", 30},
     {"Dragonborn", 30}, {"Gnome", 25}, {"Half-Elf", 30}, {"Half-Orc", 30}, {"Tiefling", 30}
@@ -124,91 +132,88 @@ std::map<std::string, int> DnDCharacter::classHitDice = {
 
 // Define inputCharacterInfo
 void DnDCharacter::inputCharacterInfo() {
+    // Name input
     std::cout << "Enter character name: ";
     std::getline(std::cin, name);
 
+    // Race selection
     selectFromList("race", races, race);
 
+    // Handle special case for Half-Elf
     if (race == "Half-Elf") {
         handleHalfElfBonuses();
-        // Apply the Half-Elf bonuses chosen to the main ability scores
-        for (const auto& choice : halfElfChoices) {
-            abilityScores[choice.first] += choice.second;
-        }
     }
 
+    // Subrace selection
     auto foundSubRaces = subRaces.find(race);
     if (foundSubRaces != subRaces.end()) {
         selectFromList("sub-race", foundSubRaces->second, subRace);
     }
 
+    // Class selection
     selectFromList("class", classes, characterClass);
+
+    // Subclass selection
     auto foundSubclasses = subclasses.find(characterClass);
     if (foundSubclasses != subclasses.end()) {
         selectFromList("subclass", foundSubclasses->second, subclass);
     }
+
+    // Background selection
     selectFromList("background", backgrounds, background);
 
-    applyRacialBonuses(); // This now applies only the default racial bonuses since Half-Elf choices are already applied
-    inputAbilityScores();
-    displayCharacterSheet();
+    applyRacialBonuses(); // Apply racial bonuses to ability scores
+        inputAbilityScores(); // Input and allocate points to ability scores
+    finalizeCharacterStats(); // Calculate final stats based on race, class, etc.
 }
+
+// Apply racial bonuses to the character's ability scores
 void DnDCharacter::applyRacialBonuses() {
-    // This function now only applies the standard racial bonuses,
-    // as Half-Elf bonuses are handled separately in handleHalfElfBonuses.
-    auto bonuses = racialBonuses.find(race);
-    if (bonuses != racialBonuses.end()) {
+    auto bonuses = racialBonuses.find(race); // Find the race in the map
+    if (bonuses != racialBonuses.end()) { // If found, apply bonuses
         for (const auto& bonus : bonuses->second) {
             abilityScores[bonus.first] += bonus.second;
         }
     }
 }
 
+// Handle special bonuses for Half-Elf race
 void DnDCharacter::handleHalfElfBonuses() {
-    if (race == "Half-Elf") {
-        std::cout << "As a Half-Elf, you receive +2 Charisma. You can also choose two other ability scores to increase by +1 each, other than Charisma.\n";
-
-        int bonusesApplied = 0;
-        while (bonusesApplied < 2) {
-            std::cout << "Choose an ability score to increase by +1: ";
-            std::string choice;
-            std::getline(std::cin, choice);
-
-            // Capitalize the first letter and make the rest lowercase
-            if (!choice.empty()) {
-                choice[0] = toupper(choice[0]);
-                for (size_t i = 1; i < choice.length(); ++i) {
-                    choice[i] = tolower(choice[i]);
-                }
-            }
-
-            if (choice == "Charisma") {
-                std::cout << "Charisma cannot be chosen. Please choose a different ability score.\n";
-                continue;
-            }
-
-            if (abilityScores.find(choice) == abilityScores.end() || halfElfChoices.find(choice) != halfElfChoices.end()) {
-                std::cout << "Invalid choice. Please select a valid ability score that hasn't been chosen yet.\n";
-                continue;
-            }
-
-            halfElfChoices[choice] = 1;
-            std::cout << choice << " increased by +1.\n";
-            bonusesApplied++;
+    // Specific logic for Half-Elf race bonuses
+    std::cout << "As a Half-Elf, you receive +2 Charisma. You can also choose two other ability scores to increase by +1 each, other than Charisma.\n";
+    int bonusesApplied = 0;
+    while (bonusesApplied < 2) { // Allow selection of two additional bonuses
+        std::cout << "Choose an ability score to increase by +1: ";
+        std::string choice;
+        std::getline(std::cin, choice);
+        // Process and validate the choice
+        if (choice == "Charisma") {
+            std::cout << "Charisma cannot be chosen. Please choose a different ability score.\n";
+            continue;
         }
+        // Check for valid ability score and not already chosen
+        if (abilityScores.find(choice) == abilityScores.end() || halfElfChoices.find(choice) != halfElfChoices.end()) {
+            std::cout << "Invalid choice. Please select a valid ability score that hasn't been chosen yet.\n";
+            continue;
+        }
+        halfElfChoices[choice] = 1; // Apply the chosen bonus
+        bonusesApplied++;
     }
 }
 
+// Presents a list of options for the user to choose from
 void DnDCharacter::selectFromList(const std::string& type, const std::vector<std::string>& options, std::string& selection) {
+    // Present options to the user
     std::cout << "Select your character's " << type << ":\n";
     for (size_t i = 0; i < options.size(); ++i) {
         std::cout << i + 1 << ". " << options[i] << "\n";
     }
-
+    // Handle user selection
     int choice;
     do {
         std::cout << "Enter the number of your choice: ";
         std::cin >> choice;
+        // Validate input
         if (std::cin.fail() || choice < 1 || choice > options.size()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
